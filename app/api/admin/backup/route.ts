@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import { fail, ok } from "@/lib/api";
 import { requirePermission } from "@/lib/route-guard";
 import { runBackupAndRecord } from "@/lib/services/backup";
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     return fail("Backup cree sans enregistrement", 500);
   }
 
-  await db.$transaction(async (tx) => {
+  await db.$transaction(async (tx: Prisma.TransactionClient) => {
     await logAudit(
       {
         actorUserId: auth.session.userId,
