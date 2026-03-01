@@ -6,6 +6,8 @@ import { nextSequence } from "@/lib/services/sequence";
 import { logAudit } from "@/lib/services/audit";
 import { evaluateOrderFinancialConsistency } from "@/lib/services/order-consistency";
 
+import { Prisma } from "@prisma/client";
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = requirePermission(request, "orders", "write");
   if (auth.response) {
@@ -42,7 +44,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
   }
 
-  const created = await db.$transaction(async (tx) => {
+  const created = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const number = await nextSequence("INVOICE", tx);
     const invoice = await tx.invoice.create({
       data: {

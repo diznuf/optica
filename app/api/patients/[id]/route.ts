@@ -5,6 +5,8 @@ import { parseBody, requirePermission } from "@/lib/route-guard";
 import { patientUpdateSchema } from "@/lib/validators/patient";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = requirePermission(request, "patients", "read");
   if (auth.response) {
@@ -46,7 +48,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return fail("Patient introuvable", 404);
   }
 
-  const updated = await db.$transaction(async (tx) => {
+  const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const patient = await tx.patient.update({
       where: { id },
       data: {

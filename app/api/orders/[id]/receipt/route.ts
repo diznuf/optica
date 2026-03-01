@@ -7,6 +7,8 @@ import { nextSequence } from "@/lib/services/sequence";
 import { logAudit } from "@/lib/services/audit";
 import { evaluateOrderFinancialConsistency } from "@/lib/services/order-consistency";
 
+import { Prisma } from "@prisma/client";
+
 const bodySchema = z.object({
   paymentId: z.string().min(1)
 });
@@ -55,7 +57,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return ok(existing, { reused: true, printUrl: `/print/receipt/${existing.id}` });
   }
 
-  const receipt = await db.$transaction(async (tx) => {
+  const receipt = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const number = await nextSequence("RECEIPT", tx);
     const created = await tx.receipt.create({
       data: {

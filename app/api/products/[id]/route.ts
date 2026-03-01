@@ -6,6 +6,8 @@ import { productUpdateSchema } from "@/lib/validators/product";
 import { sanitizeProductForRole } from "@/lib/services/view";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = requirePermission(request, "products", "read");
   if (auth.response) {
@@ -49,7 +51,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return fail("Produit introuvable", 404);
   }
 
-  const updated = await db.$transaction(async (tx) => {
+  const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const product = await tx.product.update({
       where: { id },
       data: {

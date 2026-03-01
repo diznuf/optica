@@ -6,6 +6,8 @@ import { recordStockMovement } from "@/lib/services/stock";
 import { logAudit } from "@/lib/services/audit";
 import { purchaseOrderReceiveSchema } from "@/lib/validators/purchase-order";
 
+import { Prisma } from "@prisma/client";
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = requirePermission(request, "purchasing", "write");
   if (auth.response) {
@@ -42,7 +44,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   try {
-    const result = await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
       const receivedMovements = await tx.stockMovement.findMany({
         where: {
           type: "IN",

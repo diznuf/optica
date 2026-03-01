@@ -6,6 +6,8 @@ import { recomputeSupplierInvoice } from "@/lib/services/finance";
 import { logAudit } from "@/lib/services/audit";
 import { cancelDocumentSchema } from "@/lib/validators/supplier-invoice";
 
+import { Prisma } from "@prisma/client";
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; paymentId: string }> }
@@ -33,7 +35,7 @@ export async function POST(
     return fail("Paiement introuvable pour cette facture", 404);
   }
 
-  const result = await db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.supplierPayment.delete({ where: { id: payment.id } });
     const invoice = await recomputeSupplierInvoice(id, tx);
 

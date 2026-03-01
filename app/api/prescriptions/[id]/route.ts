@@ -5,6 +5,8 @@ import { parseBody, requirePermission } from "@/lib/route-guard";
 import { prescriptionUpdateSchema } from "@/lib/validators/prescription";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = requirePermission(request, "prescriptions", "read");
   if (auth.response) {
@@ -44,7 +46,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return fail("Prescription introuvable", 404);
   }
 
-  const updated = await db.$transaction(async (tx) => {
+  const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     if (body.data.contactFits) {
       await tx.contactLensFit.deleteMany({ where: { prescriptionId: id } });
     }

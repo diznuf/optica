@@ -7,6 +7,8 @@ import { canTransitionOrder } from "@/lib/services/order-status";
 import { recordStockMovement } from "@/lib/services/stock";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = requirePermission(request, "orders", "write");
   if (auth.response) {
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   try {
-    const result = await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
       if (order.status !== "LIVREE" && body.data.status === "LIVREE") {
         for (const item of order.items) {
           if (!item.productId) {

@@ -6,6 +6,8 @@ import { userCreateSchema } from "@/lib/validators/user";
 import { hashPassword } from "@/lib/password";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function GET(request: NextRequest) {
   const auth = requirePermission(request, "users", "read");
   if (auth.response) {
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
 
   const passwordHash = await hashPassword(body.data.password);
 
-  const created = await db.$transaction(async (tx) => {
+  const created = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const user = await tx.user.create({
       data: {
         username: body.data.username,

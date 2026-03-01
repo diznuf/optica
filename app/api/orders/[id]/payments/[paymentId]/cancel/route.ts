@@ -6,6 +6,8 @@ import { recomputeOrder } from "@/lib/services/finance";
 import { logAudit } from "@/lib/services/audit";
 import { cancelPaymentSchema } from "@/lib/validators/order";
 
+import { Prisma } from "@prisma/client";
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; paymentId: string }> }
@@ -36,7 +38,7 @@ export async function POST(
     return fail("Paiement introuvable pour cette commande", 404);
   }
 
-  const result = await db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     if (payment.receipt) {
       await tx.receipt.delete({ where: { id: payment.receipt.id } });
     }

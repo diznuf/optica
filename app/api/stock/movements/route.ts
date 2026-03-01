@@ -6,6 +6,8 @@ import { stockMovementSchema } from "@/lib/validators/stock";
 import { recordStockMovement } from "@/lib/services/stock";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function POST(request: NextRequest) {
   const auth = requirePermission(request, "stock", "write");
   if (auth.response) {
@@ -23,7 +25,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const movement = await db.$transaction(async (tx) => {
+    const movement = await db.$transaction(async (tx: Prisma.TransactionClient) => {
       const created = await recordStockMovement({
         tx,
         productId: body.data.productId,

@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
   const totalAmount = sumTotal(body.data.items);
 
   try {
-    const created = await db.$transaction(async (tx) => {
+    const created = await db.$transaction(async (tx: Prisma.TransactionClient) => {
       if (body.data.purchaseOrderId) {
         await validatePurchaseOrderReconciliation(
           tx,

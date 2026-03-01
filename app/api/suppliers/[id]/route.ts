@@ -5,6 +5,8 @@ import { parseBody, requirePermission } from "@/lib/route-guard";
 import { supplierUpdateSchema } from "@/lib/validators/supplier";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = requirePermission(request, "suppliers", "read");
   if (auth.response) {
@@ -54,7 +56,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return fail("Fournisseur introuvable", 404);
   }
 
-  const updated = await db.$transaction(async (tx) => {
+  const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const supplier = await tx.supplier.update({
       where: { id },
       data: {

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { fail, ok } from "@/lib/api";
 import { parseBody, requirePermission } from "@/lib/route-guard";
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
   const totalAmount = sumTotal(body.data.items.map((item) => ({ qty: item.qty, unitPrice: item.unitPrice })));
 
-  const created = await db.$transaction(async (tx) => {
+  const created = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const number = await nextSequence("ORDER", tx);
     const order = await tx.order.create({
       data: {

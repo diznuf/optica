@@ -5,6 +5,8 @@ import { parseBody, requirePermission } from "@/lib/route-guard";
 import { cashShiftOpenSchema } from "@/lib/validators/cash-shift";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function POST(request: NextRequest) {
   const auth = requirePermission(request, "reports", "read");
   if (auth.response) {
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
     return fail("Une caisse est deja ouverte pour cet utilisateur", 409);
   }
 
-  const created = await db.$transaction(async (tx) => {
+  const created = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const shift = await tx.cashShift.create({
       data: {
         userId: auth.session.userId,

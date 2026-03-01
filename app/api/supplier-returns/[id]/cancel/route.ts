@@ -7,6 +7,8 @@ import { recomputeSupplierInvoice } from "@/lib/services/finance";
 import { recordStockMovement } from "@/lib/services/stock";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = requirePermission(request, "supplier_finance", "write");
   if (auth.response) {
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const cancelNote = `[CANCEL ${new Date().toISOString()}] ${body.data.reason}`;
 
-  const result = await db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     if (supplierReturn.status === "CONFIRMED") {
       if (linkedMovements.length > 0) {
         const productIds = Array.from(new Set(linkedMovements.map((movement) => movement.productId)));

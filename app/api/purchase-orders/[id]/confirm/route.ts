@@ -4,6 +4,8 @@ import { fail, ok } from "@/lib/api";
 import { requirePermission } from "@/lib/route-guard";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = requirePermission(request, "purchasing", "write");
   if (auth.response) {
@@ -20,7 +22,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return fail("Seul un bon en brouillon peut etre confirme", 409);
   }
 
-  const updated = await db.$transaction(async (tx) => {
+  const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const record = await tx.purchaseOrder.update({
       where: { id },
       data: { status: "CONFIRMED" }

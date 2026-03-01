@@ -5,6 +5,8 @@ import { parseBody, requirePermission } from "@/lib/route-guard";
 import { customerPaymentSchema } from "@/lib/validators/order";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 function round2(value: number) {
   return Number(value.toFixed(2));
 }
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   try {
-    const result = await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
       const claimed = await tx.order.updateMany({
         where: {
           id,

@@ -5,6 +5,8 @@ import { parseBody, requirePermission } from "@/lib/route-guard";
 import { logAudit } from "@/lib/services/audit";
 import { sequenceUpdateSchema } from "@/lib/validators/sequence";
 
+import { Prisma } from "@prisma/client";
+
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = requirePermission(request, "settings", "write");
   if (auth.response) {
@@ -26,7 +28,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return fail("Valeur inferieure detectee. Activez l'option force pour confirmer.", 409);
   }
 
-  const updated = await db.$transaction(async (tx) => {
+  const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const sequence = await tx.sequence.update({
       where: { id },
       data: { currentValue: body.data.currentValue }

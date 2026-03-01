@@ -5,6 +5,8 @@ import { parseBody, requirePermission } from "@/lib/route-guard";
 import { prescriptionCreateSchema } from "@/lib/validators/prescription";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function GET(request: NextRequest) {
   const auth = requirePermission(request, "prescriptions", "read");
   if (auth.response) {
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
     return fail("Patient introuvable", 404);
   }
 
-  const created = await db.$transaction(async (tx) => {
+  const created = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const prescription = await tx.prescription.create({
       data: {
         patientId: body.data.patientId,

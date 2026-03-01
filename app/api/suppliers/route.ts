@@ -6,6 +6,8 @@ import { supplierCreateSchema } from "@/lib/validators/supplier";
 import { nextSequence } from "@/lib/services/sequence";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function GET(request: NextRequest) {
   const auth = requirePermission(request, "suppliers", "read");
   if (auth.response) {
@@ -66,7 +68,7 @@ export async function POST(request: NextRequest) {
     return fail(body.error ?? "Payload invalide", 400);
   }
 
-  const created = await db.$transaction(async (tx) => {
+  const created = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const code = await nextSequence("SUPPLIER", tx);
     const supplier = await tx.supplier.create({
       data: {

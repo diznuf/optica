@@ -5,6 +5,8 @@ import { parseBody, requirePermission } from "@/lib/route-guard";
 import { cashShiftCloseSchema } from "@/lib/validators/cash-shift";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 function round2(value: number) {
   return Number(value.toFixed(2));
 }
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
 
   const closedAt = new Date();
 
-  const result = await db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const cashSum = await tx.customerPayment.aggregate({
       where: {
         createdById: auth.session.userId,

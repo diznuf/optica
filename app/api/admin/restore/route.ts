@@ -6,6 +6,8 @@ import { restoreBackup } from "@/lib/services/backup";
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 const schema = z.object({
   backupId: z.string().min(1).optional(),
   filePath: z.string().min(1).optional(),
@@ -58,7 +60,7 @@ export async function POST(request: NextRequest) {
       dryRun: parsed.data.dryRun
     });
 
-    await db.$transaction(async (tx) => {
+    await db.$transaction(async (tx: Prisma.TransactionClient) => {
       await logAudit(
         {
           actorUserId: auth.session.userId,

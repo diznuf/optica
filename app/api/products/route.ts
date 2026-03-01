@@ -6,6 +6,8 @@ import { productCreateSchema } from "@/lib/validators/product";
 import { logAudit } from "@/lib/services/audit";
 import { sanitizeProductForRole } from "@/lib/services/view";
 
+import { Prisma } from "@prisma/client";
+
 export async function GET(request: NextRequest) {
   const auth = requirePermission(request, "products", "read");
   if (auth.response) {
@@ -61,7 +63,7 @@ export async function POST(request: NextRequest) {
     return fail("Categorie introuvable", 404);
   }
 
-  const created = await db.$transaction(async (tx) => {
+  const created = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const product = await tx.product.create({
       data: {
         sku: body.data.sku,

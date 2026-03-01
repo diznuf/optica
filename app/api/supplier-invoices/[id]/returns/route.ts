@@ -8,6 +8,8 @@ import { recordStockMovement } from "@/lib/services/stock";
 import { recomputeSupplierInvoice } from "@/lib/services/finance";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 function round2(value: number) {
   return Number(value.toFixed(2));
 }
@@ -120,7 +122,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return fail("Montant retour invalide: inferieur au deja paye", 409);
   }
 
-  const result = await db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const number = await nextSequence("SUPPLIER_RETURN", tx);
     const supplierReturn = await tx.supplierReturn.create({
       data: {

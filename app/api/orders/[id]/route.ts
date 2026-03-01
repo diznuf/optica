@@ -4,6 +4,8 @@ import { fail, ok } from "@/lib/api";
 import { requirePermission } from "@/lib/route-guard";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = requirePermission(request, "orders", "read");
   if (auth.response) {
@@ -46,7 +48,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return fail("Suppression autorisee seulement pour brouillon", 409);
   }
 
-  await db.$transaction(async (tx) => {
+  await db.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.order.delete({ where: { id } });
     await logAudit(
       {

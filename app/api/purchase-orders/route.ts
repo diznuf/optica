@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { PurchaseOrderStatus } from "@prisma/client";
+import { PurchaseOrderStatus, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { fail, ok } from "@/lib/api";
 import { parseBody, requirePermission } from "@/lib/route-guard";
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     return fail("Fournisseur introuvable", 404);
   }
 
-  const created = await db.$transaction(async (tx) => {
+  const created = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const number = await nextSequence("PURCHASE_ORDER", tx);
     const po = await tx.purchaseOrder.create({
       data: {

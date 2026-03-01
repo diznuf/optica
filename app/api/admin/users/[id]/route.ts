@@ -6,6 +6,8 @@ import { userUpdateSchema } from "@/lib/validators/user";
 import { hashPassword } from "@/lib/password";
 import { logAudit } from "@/lib/services/audit";
 
+import { Prisma } from "@prisma/client";
+
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = requirePermission(request, "users", "write");
   if (auth.response) {
@@ -25,7 +27,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const passwordHash = body.data.password ? await hashPassword(body.data.password) : undefined;
 
-  const updated = await db.$transaction(async (tx) => {
+  const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const user = await tx.user.update({
       where: { id },
       data: {
