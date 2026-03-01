@@ -1,0 +1,487 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  OPTICIEN
+  GESTIONNAIRE_STOCK
+  VENDEUR
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUST
+  RETURN_SUPPLIER
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  CONFIRMED
+  RECEIVED
+  CANCELLED
+}
+
+enum SupplierInvoiceStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  CANCELLED
+}
+
+enum SupplierReturnStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+}
+
+enum OrderStatus {
+  BROUILLON
+  CONFIRMEE
+  EN_ATELIER
+  PRETE
+  LIVREE
+  ANNULEE
+}
+
+enum SequenceType {
+  ORDER
+  DELIVERY_NOTE
+  INVOICE
+  RECEIPT
+  PURCHASE_ORDER
+  SUPPLIER_INVOICE
+  SUPPLIER_RETURN
+  PATIENT
+  SUPPLIER
+  PRODUCT
+}
+
+enum BackupStatus {
+  SUCCESS
+  FAILED
+}
+
+enum CashShiftStatus {
+  OPEN
+  CLOSED
+}
+
+model User {
+  id               String           @id @default(cuid())
+  username         String           @unique
+  displayName      String
+  passwordHash     String
+  role             UserRole
+  isActive         Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  createdOrders    Order[]          @relation("OrderCreatedBy")
+  stockMovements   StockMovement[]  @relation("StockMovementCreatedBy")
+  supplierPayments SupplierPayment[]
+  customerPayments CustomerPayment[]
+  auditLogs        AuditLog[]       @relation("AuditActor")
+  cashShifts       CashShift[]
+}
+
+model Patient {
+  id            String         @id @default(cuid())
+  code          String         @unique
+  firstName     String
+  lastName      String
+  phone         String?
+  email         String?
+  birthDate     DateTime?
+  address       String?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  prescriptions Prescription[]
+  orders        Order[]
+}
+
+model Prescription {
+  id           String           @id @default(cuid())
+  patientId    String
+  examDate     DateTime
+  odSph        Float?
+  odCyl        Float?
+  odAxis       Int?
+  odAdd        Float?
+  osSph        Float?
+  osCyl        Float?
+  osAxis       Int?
+  osAdd        Float?
+  pdFar        Float?
+  pdNear       Float?
+  prism        String?
+  notes        String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  patient      Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  contactFits  ContactLensFit[]
+
+  @@index([patientId])
+}
+
+model ContactLensFit {
+  id             String       @id @default(cuid())
+  prescriptionId String
+  eye            String
+  brand          String?
+  power          Float?
+  baseCurve      Float?
+  diameter       Float?
+  notes          String?
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([prescriptionId])
+}
+
+model ProductCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Product {
+  id               String              @id @default(cuid())
+  sku              String              @unique
+  name             String
+  categoryId       String
+  supplierId       String?
+  unit             String
+  buyPrice         Float
+  sellPrice        Float
+  reorderLevel     Float               @default(0)
+  isActive         Boolean             @default(true)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  category         ProductCategory     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  supplier         Supplier?           @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  stockLots        StockLot[]
+  stockMovements   StockMovement[]
+  purchaseItems    PurchaseOrderItem[]
+  invoiceItems     SupplierInvoiceItem[]
+  orderItems       OrderItem[]
+
+  @@index([categoryId])
+  @@index([supplierId])
+}
+
+model StockLot {
+  id          String   @id @default(cuid())
+  productId   String
+  sourceType  String
+  sourceId    String?
+  receivedAt  DateTime @default(now())
+  qtyIn       Float
+  qtyRemaining Float
+  unitCost    Float
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([productId, receivedAt])
+}
+
+model StockMovement {
+  id            String            @id @default(cuid())
+  productId     String
+  type          StockMovementType
+  qty           Float
+  unitCost      Float?
+  referenceType String?
+  referenceId   String?
+  note          String?
+  createdById   String
+  createdAt     DateTime          @default(now())
+  product       Product           @relation(fields: [productId], references: [id], onDelete: Restrict)
+  createdBy     User              @relation("StockMovementCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([productId, createdAt])
+  @@index([createdById])
+}
+
+model Supplier {
+  id              String           @id @default(cuid())
+  code            String           @unique
+  name            String
+  phone           String?
+  email           String?
+  address         String?
+  paymentTermsDays Int             @default(30)
+  openingBalance  Float            @default(0)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  products        Product[]
+  purchaseOrders  PurchaseOrder[]
+  supplierInvoices SupplierInvoice[]
+  supplierReturns SupplierReturn[]
+
+  @@index([name])
+}
+
+model PurchaseOrder {
+  id           String              @id @default(cuid())
+  number       String              @unique
+  supplierId   String
+  status       PurchaseOrderStatus @default(DRAFT)
+  orderDate    DateTime
+  expectedDate DateTime?
+  notes        String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  supplier     Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  items        PurchaseOrderItem[]
+  invoices     SupplierInvoice[]
+
+  @@index([supplierId])
+  @@index([status])
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  qty             Float
+  unitCost        Float
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseOrderId])
+  @@index([productId])
+}
+
+model SupplierInvoice {
+  id             String               @id @default(cuid())
+  number         String               @unique
+  supplierId     String
+  purchaseOrderId String?
+  issueDate      DateTime
+  dueDate        DateTime
+  totalAmount    Float
+  paidAmount     Float                @default(0)
+  balance        Float
+  status         SupplierInvoiceStatus @default(UNPAID)
+  notes          String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  supplier       Supplier             @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  purchaseOrder  PurchaseOrder?       @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  items          SupplierInvoiceItem[]
+  payments       SupplierPayment[]
+  returns        SupplierReturn[]
+
+  @@index([supplierId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model SupplierInvoiceItem {
+  id                String          @id @default(cuid())
+  supplierInvoiceId String
+  productId         String
+  qty               Float
+  unitCost          Float
+  supplierInvoice   SupplierInvoice @relation(fields: [supplierInvoiceId], references: [id], onDelete: Cascade)
+  product           Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([supplierInvoiceId])
+}
+
+model SupplierPayment {
+  id               String          @id @default(cuid())
+  supplierInvoiceId String
+  amount           Float
+  method           PaymentMethod
+  paidAt           DateTime
+  reference        String?
+  createdById      String
+  createdAt        DateTime        @default(now())
+  supplierInvoice  SupplierInvoice @relation(fields: [supplierInvoiceId], references: [id], onDelete: Restrict)
+  createdBy        User            @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([supplierInvoiceId])
+  @@index([createdById])
+}
+
+model SupplierReturn {
+  id               String               @id @default(cuid())
+  number           String               @unique
+  supplierId       String
+  supplierInvoiceId String?
+  date             DateTime
+  amount           Float
+  note             String?
+  status           SupplierReturnStatus @default(DRAFT)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  supplier         Supplier             @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  supplierInvoice  SupplierInvoice?     @relation(fields: [supplierInvoiceId], references: [id], onDelete: SetNull)
+
+  @@index([supplierId])
+  @@index([supplierInvoiceId])
+}
+
+model Order {
+  id           String         @id @default(cuid())
+  number       String         @unique
+  patientId    String
+  status       OrderStatus    @default(BROUILLON)
+  orderDate    DateTime
+  promisedDate DateTime?
+  totalAmount  Float
+  paidAmount   Float          @default(0)
+  balance      Float
+  notes        String?
+  createdById  String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  patient      Patient        @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  createdBy    User           @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  items        OrderItem[]
+  payments     CustomerPayment[]
+  deliveryNotes DeliveryNote[]
+  invoices     Invoice[]
+  receipts     Receipt[]
+
+  @@index([patientId])
+  @@index([status])
+  @@index([createdById])
+}
+
+model OrderItem {
+  id                       String  @id @default(cuid())
+  orderId                  String
+  productId                String?
+  descriptionSnapshot      String
+  qty                      Float
+  unitPrice                Float
+  lineTotal                Float
+  prescriptionSnapshotJson Json?
+  order                    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product                  Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+model CustomerPayment {
+  id          String        @id @default(cuid())
+  orderId     String
+  amount      Float
+  method      PaymentMethod
+  paidAt      DateTime
+  reference   String?
+  createdById String
+  createdAt   DateTime      @default(now())
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  createdBy   User          @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  receipt     Receipt?
+
+  @@index([orderId])
+  @@index([createdById])
+}
+
+model DeliveryNote {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  orderId     String
+  deliveredAt DateTime
+  deliveredBy String?
+  note        String?
+  createdAt   DateTime @default(now())
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+}
+
+model Invoice {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  orderId     String
+  issuedAt    DateTime
+  totalAmount Float
+  createdAt   DateTime @default(now())
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+}
+
+model Receipt {
+  id          String          @id @default(cuid())
+  number      String          @unique
+  orderId     String
+  paymentId   String          @unique
+  issuedAt    DateTime
+  amount      Float
+  createdAt   DateTime        @default(now())
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  payment     CustomerPayment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([paymentId])
+}
+
+model CashShift {
+  id                  String          @id @default(cuid())
+  userId              String
+  status              CashShiftStatus @default(OPEN)
+  openedAt            DateTime        @default(now())
+  openingCash         Float           @default(0)
+  closedAt            DateTime?
+  closingCashDeclared Float?
+  expectedCash        Float?
+  variance            Float?
+  note                String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  user                User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, status])
+  @@index([openedAt])
+}
+
+model Sequence {
+  id           String       @id @default(cuid())
+  type         SequenceType @unique
+  currentValue Int          @default(0)
+  updatedAt    DateTime     @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String
+  action      String
+  entity      String
+  entityId    String
+  metaJson    Json?
+  createdAt   DateTime @default(now())
+  actor       User     @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([actorUserId])
+  @@index([entity, entityId])
+}
+
+model BackupRecord {
+  id         String       @id @default(cuid())
+  filePath   String
+  sizeBytes  Int
+  checksumSha256 String?
+  status     BackupStatus
+  error      String?
+  createdAt  DateTime     @default(now())
+}
